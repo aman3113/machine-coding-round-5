@@ -1,6 +1,7 @@
-import React, { useContext, useState } from "react";
+import React, { useContext, useEffect, useState } from "react";
 import { v4 as uuidv4 } from "uuid";
 
+import { BsSearch } from "react-icons/bs";
 import {
 	Modal,
 	ModalOverlay,
@@ -13,10 +14,11 @@ import {
 } from "@chakra-ui/react";
 import { RecipeContext } from "../Context";
 import RecipeComponent from "./RecipeComponent";
+import { RxCross1 } from "react-icons/rx";
 
 const HomePage = () => {
 	const { recipeArr, setRecipeArr } = useContext(RecipeContext);
-	const [itemArr, setItemArr] = useState(recipeArr);
+	const [itemArr, setItemArr] = useState([]);
 	const [search, setSearch] = useState("");
 	const [filter, setFilter] = useState("title");
 	const [openRecipeModal, setOpenRecipeModal] = useState(false);
@@ -32,6 +34,10 @@ const HomePage = () => {
 		ingredients: "",
 		directions: "",
 	});
+
+	useEffect(() => {
+		setItemArr(recipeArr);
+	}, [recipeArr]);
 
 	function handleFormOnChange(e) {
 		const { name, value } = e.target;
@@ -51,15 +57,23 @@ const HomePage = () => {
 
 	function handleAddTextAreaItem(e) {
 		if (e.key === "Enter") {
-			if (e.target.value === "ingredients") {
+			if (e.target.name === "ingredients") {
 				setFormData((prev) => ({
 					...prev,
 					ingredients: [...prev.ingredients, e.target.value],
+				}));
+				setTextAreaData((prev) => ({
+					...prev,
+					ingredients: "",
 				}));
 			} else {
 				setFormData((prev) => ({
 					...prev,
 					directions: [...prev.directions, e.target.value],
+				}));
+				setTextAreaData((prev) => ({
+					...prev,
+					directions: "",
 				}));
 			}
 		}
@@ -68,6 +82,13 @@ const HomePage = () => {
 	function addRecipe() {
 		setRecipeArr((prev) => [...prev, { id: uuidv4(), ...formData }]);
 		setOpenRecipeModal(false);
+		setFormData({
+			cuisine: "",
+			title: "",
+			ingredients: [],
+			directions: [],
+			image: "",
+		});
 	}
 
 	function handleKeyDown() {
@@ -91,18 +112,38 @@ const HomePage = () => {
 		setFilter(e.target.value);
 	}
 
+	function deleteStep(name, id) {
+		console.log(name, id);
+		if (name === "ingredients") {
+			setFormData((prev) => ({
+				...prev,
+				ingredients: prev.ingredients.filter((item, idx) => idx !== id),
+			}));
+		} else {
+			setFormData((prev) => ({
+				...prev,
+				directions: prev.directions.filter((item, idx) => idx !== id),
+			}));
+		}
+	}
+
 	return (
-		<div className="p-3">
-			<p className="text-3xl font-bold p-4 text-center">Let's Cook</p>
-			<div className="flex gap-2 items-center ">
-				<input
-					type="search"
-					value={search}
-					onChange={(e) => setSearch(e.target.value)}
-					onKeyDown={handleKeyDown}
-					placeholder="search your query here.."
-					className="border rounded-md"
-				/>
+		<div className="p-3 ">
+			<p className="text-4xl font-bold p-4 text-center border-b-2 border-gray-300 rounded-sm mb-3">
+				Let's Cook
+			</p>
+			<div className="flex gap-2 items-center justify-center p-3">
+				<div className="flex gap-2 items-center border border-black rounded-md p-1 px-2 mr-3 w-[30%]">
+					<BsSearch size={20} />
+					<input
+						type="search"
+						value={search}
+						onChange={(e) => setSearch(e.target.value)}
+						onKeyDown={handleKeyDown}
+						placeholder={`search recipe based on its ${filter} ...`}
+						className="w-full focus:outline-none"
+					/>
+				</div>
 				<div className="flex gap-2 items-center cursor-pointer">
 					<label>
 						<input
@@ -110,6 +151,7 @@ const HomePage = () => {
 							value="title"
 							checked={filter === "title"}
 							name="search_type"
+							className="cursor-pointer mr-1"
 							onChange={handleCategoryChange}
 						/>
 						Title
@@ -120,6 +162,7 @@ const HomePage = () => {
 							value="ingredients"
 							checked={filter === "ingredients"}
 							name="search_type"
+							className="cursor-pointer mr-1"
 							onChange={handleCategoryChange}
 						/>
 						Ingredients
@@ -130,37 +173,51 @@ const HomePage = () => {
 							value="cuisine"
 							checked={filter === "cuisine"}
 							name="search_type"
+							className="cursor-pointer mr-1"
 							onChange={handleCategoryChange}
 						/>
 						Cuisine
 					</label>
 				</div>
 			</div>
-			<div>
-				<div>
-					<p className="text-xl font-bold my-3">All Recipes:</p>
-					<button onClick={() => setOpenRecipeModal(true)}>Add Recipe</button>
+			<div className="p-3">
+				<div className="flex items-center justify-between">
+					<p className="text-2xl font-bold my-3">All Recipes:</p>
+					<button
+						className="bg-blue-400 text-white px-3 py-1 rounded-md"
+						onClick={() => setOpenRecipeModal(true)}
+					>
+						Add Recipe
+					</button>
 				</div>
 
-				<div className="flex gap-2 flex-wrap">
-					{itemArr.map((recipe) => (
+				<div className="flex gap-4 flex-wrap justify-center">
+					{itemArr?.map((recipe) => (
 						<RecipeComponent key={recipe.id} recipeDetails={recipe} />
 					))}
 				</div>
 			</div>
-			<Modal isOpen={openRecipeModal} onClose={() => setOpenRecipeModal(false)}>
+			<Modal
+				isOpen={openRecipeModal}
+				onClose={() => setOpenRecipeModal(false)}
+				scrollBehavior="inside"
+			>
 				<ModalOverlay />
 				<ModalContent>
-					<ModalHeader>Modal Title</ModalHeader>
+					<ModalHeader>Create Your Recipe</ModalHeader>
 					<ModalCloseButton />
 					<ModalBody>
-						<form action={(e) => e.preventDefault()}>
+						<form
+							action={(e) => e.preventDefault()}
+							className="flex flex-col gap-2"
+						>
 							<input
 								type="text"
 								name="cuisine"
 								value={formData.cuisine}
 								placeholder="Enter cuisine name"
 								onChange={handleFormOnChange}
+								className="border p-1 rounded-md"
 							/>
 							<input
 								type="text"
@@ -168,9 +225,9 @@ const HomePage = () => {
 								value={formData.title}
 								placeholder="Enter Title"
 								onChange={handleFormOnChange}
+								className="border p-1 rounded-md"
 							/>
 							<label>
-								{" "}
 								Ingredients:{" "}
 								<input
 									type="text"
@@ -178,10 +235,22 @@ const HomePage = () => {
 									value={textAreaData.ingredients}
 									onChange={handleTextAreaOnChange}
 									onKeyDown={handleAddTextAreaItem}
+									className="border p-1 rounded-md"
 								/>
 							</label>
+							<div className="flex gap-2 flex-col">
+								{formData.ingredients?.map((item, idx) => (
+									<li key={idx}>
+										{item}
+										<RxCross1
+											size={12}
+											className="inline ml-1 cursor-pointer"
+											onClick={() => deleteStep("ingredients", idx)}
+										/>
+									</li>
+								))}
+							</div>
 							<label>
-								{" "}
 								Directions:{" "}
 								<input
 									type="text"
@@ -189,8 +258,21 @@ const HomePage = () => {
 									value={textAreaData.directions}
 									onChange={handleTextAreaOnChange}
 									onKeyDown={handleAddTextAreaItem}
+									className="border p-1 rounded-md"
 								/>
 							</label>
+							<div className="flex gap-2 flex-col">
+								{formData.directions?.map((item, idx) => (
+									<li key={idx}>
+										{item}
+										<RxCross1
+											size={12}
+											className="inline ml-1 cursor-pointer"
+											onClick={() => deleteStep("directions", idx)}
+										/>
+									</li>
+								))}
+							</div>
 						</form>
 					</ModalBody>
 
